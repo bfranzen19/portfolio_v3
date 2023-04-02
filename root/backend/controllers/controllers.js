@@ -39,125 +39,96 @@ const setType = (route) => {
 
 export const add = async (req, res) => {
     setType(req.route.path);
-    console.log("req.route.path: ", req.route.path, "\nModel: ", Model);
+
+    // TODO: push into arrays for add and updates
 
     const newRec = new Model(req.body);
-
-    const record = await newRec
+    await newRec
         .save()
-        .then((Model) => res.json(Model))
-        .catch((err) => res.send(err.message));
-
-    console.log("added: ", record);
-
-    return record;
+        .then((result) => res.status(200).send(result))
+        .catch((err) => res.status(404).send(err));
 };
 
 export const getAll = async (req, res) => {
     setType(req.route.path);
 
-    const records = await Model.find({}).catch((err) => res.send(err.message));
-    res.json(records);
-    return records;
+    await Model.find({})
+        .then((result) => res.status(200).send(result))
+        .catch((err) => res.status(404).send(err));
 };
 
 export const getById = async (req, res) => {
     setType(req.route.path);
-    const record = await Model.findById(
+
+    await Model.findById(
         {
             _id: req.params.Id
         },
         req.body,
-        {new: true}
+        {new: true, returnDocument: "after"}
     )
-        .then(res.json(Model))
-        .catch((err) => res.send(err.message));
-
-    console.log("found by id: ", record);
-
-    return record;
+        .then((result) => res.status(200).send(result))
+        .catch((err) => res.status(404).send(err));
 };
 
 export const getByName = async (req, res) => {
     setType(req.route.path);
-    const record = await Model.findOne(
+    await Model.findOne(
         {
             name: req.params.Name
         },
         req.body,
-        {new: true}
+        {new: true, returnDocument: "after"}
     )
-        .then(res.json(Model))
-        .catch((err) => res.send(err.message));
-
-    console.log("found by name: ", record);
-
-    return record;
+        .then((result) => res.status(200).send(result))
+        .catch((err) => res.status(404).send(err));
 };
 
 export const updateByName = async (req, res) => {
     setType(req.route.path);
-    const record = await Model.findOneAndUpdate(
+    await Model.findOneAndUpdate(
         {
             name: req.params.Name
         },
         req.body,
-        {new: true}
+        {new: true, upsert: true, returnDocument: "after"}
     )
-        .then(res.json(Model))
-        .catch((err) => res.send(err.message));
-
-    console.log("updated by name: ", record);
-
-    return record;
+        .then((result) => res.status(200).send(result))
+        .catch((err) => res.status(404).send(err));
 };
 
 export const updateById = async (req, res) => {
     setType(req.route.path);
-    const record = await Model.findOneAndUpdate(
+    await Model.findOneAndUpdate(
         {
             _id: req.params.Id
         },
         req.body,
-        {new: true}
+        {new: true, upsert: true, returnDocument: "after"}
     )
-        .then(res.json(Model))
-        .catch((err) => res.send(err.message));
-
-    console.log("updated by id: ", record);
-
-    return record;
+        .then((result) => res.status(200).send(result))
+        .catch((err) => res.status(404).send(err));
 };
 
 export const deleteByName = async (req, res) => {
-    const record = await Model.deleteOne({
+    await Model.deleteOne({
         name: req.params.Name
-    })
-        .then(
-            res.json({
-                message: `successfully deleted ${req.params.Name}`
-            })
-        )
-        .catch((err) => res.send(err.message));
-
-    console.log("deleted by name: ", record);
-
-    return record;
+    }).catch((err) => res.status(404).send(err));
+    res.json([
+        {
+            message: `successfully deleted ${req.params.Name}`
+        }
+    ]);
 };
 
 export const deleteById = async (req, res) => {
     setType(req.route.path);
-    const record = await Model.deleteOne({
+    await Model.deleteOne({
         _id: req.params.Id
-    })
-        .then(
-            res.json({
-                message: `successfully deleted ${req.params.Id}`
-            })
-        )
-        .catch((err) => res.send(err.message));
-
-    console.log("deleted by id: ", record);
-
-    return record;
+    }).catch((err) => res.status(404).send(err));
+    res.json([
+        {
+            message: `successfully deleted ${req.params.Id}`
+        }
+    ]);
 };

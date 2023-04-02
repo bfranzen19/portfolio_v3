@@ -1,4 +1,4 @@
-import React, {useState, useMemo} from "react";
+import React, {useState} from "react";
 import {useLocation} from "react-router-dom";
 import {
     Radio,
@@ -8,30 +8,46 @@ import {
     FormLabel,
     Stack,
     Box,
-    TextField
+    TextField,
+    Divider
 } from "@mui/material";
 import axios from "axios";
 import MuiBtn from "./MuiBtn";
 import MuiSnackbar from "./MuiSnackbar";
 const _ = require("lodash");
-
 const configuration = require("../config.json");
 
 const METHODS = configuration.methods;
 const defaultStates = configuration.defaultStates;
-let cloned;
+let cloned = [""];
 
-const axiosGet = async () => {
-    console.log("GET");
-};
-const axiosPut = () => {
-    console.log("PUT");
-};
-const axiosPost = () => {
-    console.log("POST");
-};
-const axiosDelete = () => {
-    console.log("DELETE");
+const AlertDialog = (props) => {
+    const {
+        err,
+        toastOpen,
+        setToastOpen,
+        severity,
+        transitionDirection,
+        horizontalAnchorOrigin,
+        verticalAnchorOrigin,
+        autoHideDuration
+    } = props;
+
+    return (
+        <MuiSnackbar
+            closeOnClickaway
+            isTransition
+            transitionDirection={transitionDirection}
+            severity={severity}
+            autoHideDuration={autoHideDuration || 6000}
+            setOpen={setToastOpen}
+            open={toastOpen}
+            horizontalAnchorOrigin={horizontalAnchorOrigin || "center"}
+            verticalAnchorOrigin={verticalAnchorOrigin || "top"}
+        >
+            {`ERROR: ${err}`}
+        </MuiSnackbar>
+    );
 };
 
 export default function CreateRecord() {
@@ -47,43 +63,139 @@ export default function CreateRecord() {
 
     const [formValues, setFormValues] = useState(defaultState);
     const [methodType, setMethodType] = useState("getAll");
-    const [toastOpen, setToastOpen] = useState(true);
+    const [toastOpen, setToastOpen] = useState(false);
     const [dataLoaded, setDataLoaded] = useState(false);
+    const [showFields, setShowFields] = useState(false); // add and update
+    const [showSearch, setShowSearch] = useState(false); // get by name, id
+    const [err, setErr] = useState("");
+    const [searchData, setSearchData] = useState("");
     const [data, setData] = useState([]);
+    let severity;
 
-    const handleChange = (event) => {
-        setMethodType(event.target.value);
+    const setFieldStates = (method) => {
+        if (method.toLowerCase().includes("add")) {
+            setShowFields(true);
+        } else if (
+            method.toLowerCase().includes("id") ||
+            method.toLowerCase().includes("name")
+        ) {
+            if (
+                method.toLowerCase().includes("get") ||
+                method.toLowerCase().includes("delete")
+            ) {
+                setShowSearch(true);
+            } else {
+                setShowFields(true);
+                setShowSearch(true);
+            }
+        } else {
+            setShowFields(false);
+            setShowSearch(false);
+        }
+    };
+
+    const resetForm = (e?) => {
+        cloned = [];
+        setFormValues(defaultState);
+        setDataLoaded(false);
+        setData([]);
+
+        if (e.target.value) {
+            setFieldStates(e.target.value || "gitAll");
+            setSearchData(e.target.value || "");
+        }
+    };
+
+    const handleChange = (e) => {
+        setMethodType(e.target.value);
+        setFieldStates(e.target.value);
+        resetForm(e);
     };
 
     const handleInputChange = (e) => {
         e.preventDefault();
-        const {name, value} = e.target;
-        setFormValues({...formValues, [name]: value});
+
+        if (e.target.id === "search") {
+            setSearchData(e.target.value);
+        } else {
+            const {name, value} = e.target;
+            setFormValues({...formValues, [name]: value});
+        }
     };
 
-    const firstRender = useMemo(() => true, []);
+    const triggerAlertDialog = () => {
+        setToastOpen(true);
+    };
 
     const onSubmit = async (e) => {
         e.preventDefault();
 
-        if (methodType.includes("add")) axiosPost();
-        else if (methodType.includes("get")) {
-            if (!dataLoaded) {
-                let dbData = await axios
-                    .get(url)
-                    .then((response) => response)
-                    .catch((error) => error);
+        if (!dataLoaded && cloned) resetForm(e);
 
-                if (dbData.status === 200) {
-                    cloned = _.cloneDeep(dbData.data);
-                    setData(data.push(dbData.data));
-                    setDataLoaded(true);
-                }
-            }
-            return data;
-        } else if (methodType.includes("update")) axiosPut();
-        else if (methodType.includes("delete")) axiosDelete();
-        else setToastOpen(true);
+        let searchType = methodType.toLowerCase().includes("id")
+            ? "id"
+            : "name";
+
+        let reqUrl = url;
+        let dbData;
+
+        if (
+            methodType.toLowerCase().includes("id") ||
+            methodType.toLowerCase().includes("name")
+        )
+            reqUrl = `${reqUrl}/${searchType}/${searchData}`;
+
+        if (methodType.includes("add")) {
+            delete formValues._id;
+
+            dbData = await axios
+                .post(reqUrl, formValues)
+                .then((response) => response)
+                .catch((error) => {
+                    setErr(error.message);
+                    triggerAlertDialog();
+                });
+        } else if (methodType.toLowerCase().includes("get")) {
+            dbData = await axios
+                .get(reqUrl)
+                .then((response) => response)
+                .catch((error) => {
+                    setErr(error.message);
+                    triggerAlertDialog();
+                });
+        } else if (methodType.toLowerCase().includes("update")) {
+            delete formValues._id;
+
+            dbData = await axios
+                .put(reqUrl, formValues)
+                .then((response) => response)
+                .catch((error) => {
+                    setErr(error.message);
+                    triggerAlertDialog();
+                });
+        } else if (methodType.toLowerCase().includes("delete")) {
+            dbData = await axios
+                .delete(reqUrl)
+                .then((response) => response)
+                .catch((error) => {
+                    setErr(error.message);
+                    triggerAlertDialog();
+                });
+        } else {
+            const errMsg = `Method ${methodType} not found.`;
+            setErr(errMsg);
+            triggerAlertDialog();
+        }
+
+        if (!dataLoaded && dbData?.data) {
+            cloned = Array.isArray(dbData.data)
+                ? _.cloneDeep(dbData.data)
+                : _.cloneDeep([dbData.data]);
+            setData(data.push(dbData.data));
+            setDataLoaded(true);
+
+            console.log("data: ", data);
+        }
     };
 
     return (
@@ -111,7 +223,8 @@ export default function CreateRecord() {
                     </RadioGroup>
                 </FormControl>
             </Stack>
-            <Stack mt={2} justifyItems='center'>
+            <Divider flexItem />
+            <Stack justifyItems='center'>
                 <Box
                     display='flex'
                     flexDirection='column'
@@ -125,14 +238,39 @@ export default function CreateRecord() {
                     autoComplete='off'
                     onSubmit={onSubmit}
                 >
-                    {Object.entries(defaultState).map((entry) => {
-                        const [field, value] = entry;
-                        if (field !== "type") {
-                            if (typeof value === "object") {
+                    {showSearch && (
+                        <TextField
+                            type='input'
+                            variant='outlined'
+                            id='search'
+                            label='search'
+                            name='search'
+                            onChange={handleInputChange}
+                        />
+                    )}
+                    <Divider flexItem />
+                    {showFields &&
+                        Object.entries(defaultState).map((entry) => {
+                            const [field, value] = entry;
+
+                            if (field !== "type" && field !== "_id") {
+                                if (typeof value === "object") {
+                                    return (
+                                        <TextField
+                                            multiline
+                                            type='textarea'
+                                            variant='outlined'
+                                            key={field}
+                                            id={field}
+                                            label={field}
+                                            name={field}
+                                            onChange={handleInputChange}
+                                        />
+                                    );
+                                }
                                 return (
                                     <TextField
-                                        multiline
-                                        type='textarea'
+                                        type='input'
                                         variant='outlined'
                                         key={field}
                                         id={field}
@@ -142,55 +280,60 @@ export default function CreateRecord() {
                                     />
                                 );
                             }
-                            return (
-                                <TextField
-                                    type='input'
-                                    variant='outlined'
-                                    key={field}
-                                    id={field}
-                                    label={field}
-                                    name={field}
-                                    onChange={handleInputChange}
-                                />
-                            );
-                        }
-                        return "";
-                    })}
+                            return "";
+                        })}
                     <MuiBtn type='submit' styling={{margin: 3}}>
                         Submit
                     </MuiBtn>
-                    {!firstRender ?? (
-                        <MuiSnackbar
-                            isTransition
+                    {toastOpen && (
+                        <AlertDialog
+                            err={err}
+                            toastOpen={toastOpen}
+                            setToastOpen={setToastOpen}
+                            severity={severity || "error"}
                             transitionDirection='down'
-                            closeOnClickaway
-                            severity='error'
-                            autoHideDuration={6000}
-                            setOpen={setToastOpen}
-                            open={toastOpen}
-                        >
-                            {`Method type ${methodType} not found`}
-                        </MuiSnackbar>
+                            autoHideDuration={3000}
+                        ></AlertDialog>
                     )}
                 </Box>
             </Stack>
-            <Stack mt={2} justifyItems='center'>
-                Show:
-                {cloned && (
-                    <ul>
-                        {cloned.map((d) => (
-                            <li key={d._id}>
-                                {Object.entries(defaultState).map((entry) => {
-                                    const [field] = entry;
-                                    return (
-                                        <p key={field}>
-                                            {field}: {_.get(d, field)}
-                                        </p>
-                                    );
-                                })}
-                            </li>
-                        ))}
-                    </ul>
+            <Divider flexItem />
+            <Stack justifyItems='center'>
+                {dataLoaded && (
+                    <>
+                        {Array.isArray(cloned) &&
+                        !methodType.toLowerCase().includes("delete") ? (
+                            <ul>
+                                {cloned.map((d) => (
+                                    <li key={d._id}>
+                                        {Object.entries(defaultState).map(
+                                            (entry) => {
+                                                const [field] = entry;
+                                                if (field !== "type") {
+                                                    return (
+                                                        <p key={field}>
+                                                            <b>{field}</b>:
+                                                            {"  "}
+                                                            {JSON.stringify(
+                                                                _.get(d, field)
+                                                            )}
+                                                        </p>
+                                                    );
+                                                }
+                                                return "";
+                                            }
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <ul>
+                                <li>
+                                    <p>{cloned[0].message}</p>
+                                </li>
+                            </ul>
+                        )}
+                    </>
                 )}
             </Stack>
         </Stack>

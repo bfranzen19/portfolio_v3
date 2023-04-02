@@ -1,31 +1,131 @@
-import React from "react";
-import {Stack} from "@mui/material";
+import React, {useState, useEffect} from "react";
+import {Stack, Skeleton, Box} from "@mui/material";
+import axios from "axios";
 import flatties from "../assets/img/flatties.jpg";
-import MuiCard from "../components/MuiCard";
+import MuiCard from "./MuiCard";
+import MuiSnackbar from "./MuiSnackbar";
 
-const bodyItems = [
-    "I'm a colorado-based software engineer. I've been in the industry since 2017 after switching careers from managing a GIS (Geographic Information Systems) satellite imagery team for 4 years, allowing me to see the entire world from satellites, twice over.",
-    "I came to GIS after 6 years in the army where I attained the rank of Sergeant and title of Vessel Master for a maritime test asset. Prior to my time in the US Army, I played NCAA Division 1 and Division 2 lacrosse in college.",
-    "I have extensive experience in several languages, frameworks, and technologies. I love to learn new things and solve complex problems. Please take a look at my current resume or check out my about me page and some of my projects."
-];
+const env = process.env.NODE_ENV;
+const config = require("../config.json")[env];
 
-function Home(props) {
+/*  */
+const AlertDialog = (props) => {
+    const {
+        err,
+        toastOpen,
+        setToastOpen,
+        severity,
+        transitionDirection,
+        horizontalAnchorOrigin,
+        verticalAnchorOrigin,
+        autoHideDuration
+    } = props;
+
+    return (
+        <MuiSnackbar
+            closeOnClickaway
+            isTransition
+            transitionDirection={transitionDirection}
+            severity={severity}
+            autoHideDuration={autoHideDuration || 6000}
+            setOpen={setToastOpen}
+            open={toastOpen}
+            horizontalAnchorOrigin={horizontalAnchorOrigin || "center"}
+            verticalAnchorOrigin={verticalAnchorOrigin || "top"}
+        >
+            {`ERROR: ${err}`}
+        </MuiSnackbar>
+    );
+};
+
+function Home() {
+    const [dataLoaded, setDataLoaded] = useState(false);
+    const [data, setData] = useState([]);
+    const [err, setErr] = useState("");
+    const [toastOpen, setToastOpen] = useState(false);
+
+    const triggerAlertDialog = () => {
+        setToastOpen(true);
+    };
+
+    useEffect(() => {
+        const url =
+            env === "development"
+                ? `${config.baseUrl}:${config.port}/contact/name/bt`
+                : `${config.baseUrl}/contact/name/bt`;
+
+        async function getData() {
+            const dbData = await axios
+                .get(url)
+                .then((response) => response)
+                .catch((error) => {
+                    setErr(error.message);
+                    triggerAlertDialog();
+                });
+
+            console.log("dbData: ", dbData.data.intro);
+
+            if (!dataLoaded && dbData?.data) {
+                setData(dbData.data.intro);
+                setDataLoaded(true);
+            }
+        }
+
+        getData();
+        return;
+    }, []);
+
     return (
         <Stack direction='column' alignItems='center' my={5}>
-            <MuiCard
-                includeActionButtons
-                includeMedia
-                imgHeight='80vh'
-                imgSrc={flatties}
-                altText='Flatirons of Boulder, CO'
-                titleVariant={"h4"}
-                title="It's me, BT!"
-                bodyVariant='body1'
-                body={bodyItems}
-                bottomButtonType='home'
-                buttonJustification='center'
-                buttonDirection='row'
-            />
+            {!dataLoaded ? (
+                <Box
+                    p={0}
+                    sx={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        flexDirection: "column"
+                    }}
+                >
+                    <Skeleton
+                        variant='rectangular'
+                        width={"80%"}
+                        height={"40vh"}
+                    />
+
+                    <Skeleton width={"80%"} height={"5vh"} />
+                    <Skeleton width={"80%"} height={"4vh"} />
+                    <Skeleton width={"80%"} height={"3vh"} />
+                    <Skeleton width={"80%"} height={"2vh"} />
+                    <Skeleton width={"80%"} height={"2vh"} />
+                </Box>
+            ) : (
+                <MuiCard
+                    includeActionButtons
+                    includeMedia
+                    imgHeight='80vh'
+                    imgSrc={flatties}
+                    altText='Flatirons of Boulder, CO'
+                    titleVariant={"h4"}
+                    title="It's me, BT!"
+                    bodyVariant='body1'
+                    body={data}
+                    bottomButtonType='home'
+                    buttonJustification='center'
+                    buttonDirection='row'
+                />
+            )}
+
+            {toastOpen && (
+                <AlertDialog
+                    err={err}
+                    toastOpen={toastOpen}
+                    setToastOpen={setToastOpen}
+                    severity='error'
+                    transitionDirection='down'
+                    autoHideDuration={3000}
+                ></AlertDialog>
+            )}
         </Stack>
     );
 }

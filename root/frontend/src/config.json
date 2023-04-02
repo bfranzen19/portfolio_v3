@@ -5,12 +5,13 @@
         "port": "8000"
     },
     "production": {
-        "baseUrl": "https://btfranzen.com/",
+        "baseUrl": "https://btfranzen.com",
         "port": ""
     },
     "defaultStates": [
         {
             "type": "contact",
+            "_id": "",
             "name": "",
             "linkedin": "",
             "github": "",
@@ -23,6 +24,7 @@
         },
         {
             "type": "experience",
+            "_id": "",
             "name": "",
             "title": "",
             "company": "",
@@ -34,6 +36,7 @@
         },
         {
             "type": "project",
+            "_id": "",
             "name": "",
             "gifUrl": "",
             "githubUrl": "",
@@ -45,6 +48,7 @@
         },
         {
             "type": "skill",
+            "_id": "",
             "name": "",
             "startDate": "",
             "endDate": "",
