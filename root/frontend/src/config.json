@@ -1,0 +1,75 @@
+{
+    "routes": ["contact", "experience", "project", "skill"],
+    "development": {
+        "baseUrl": "http://localhost",
+        "port": "8000"
+    },
+    "production": {
+        "baseUrl": "https://btfranzen.com",
+        "port": ""
+    },
+    "defaultStates": [
+        {
+            "type": "contact",
+            "_id": "",
+            "name": "",
+            "linkedin": "",
+            "github": "",
+            "twitter": "",
+            "resumeUrl": "",
+            "phone": "",
+            "email": "",
+            "intro": [],
+            "address": ""
+        },
+        {
+            "type": "experience",
+            "_id": "",
+            "name": "",
+            "title": "",
+            "company": "",
+            "bullets": [],
+            "startDate": "",
+            "endDate": "",
+            "location": "",
+            "isPresent": false
+        },
+        {
+            "type": "project",
+            "_id": "",
+            "name": "",
+            "gifUrl": "",
+            "githubUrl": "",
+            "description": "",
+            "technologies": [],
+            "siteUrl": "",
+            "tags": [],
+            "classNames": []
+        },
+        {
+            "type": "skill",
+            "_id": "",
+            "name": "",
+            "startDate": "",
+            "endDate": "",
+            "isPresentSkill": false,
+            "isLanguage": false,
+            "isFormalEducation": false,
+            "isWorkExperience": false,
+            "isProjectExperience": false
+        },
+        {
+            "type": "default"
+        }
+    ],
+    "methods": [
+        "add",
+        "getAll",
+        "getById",
+        "getByName",
+        "updateByName",
+        "updateById",
+        "deleteByName",
+        "deleteById"
+    ]
+}
